@@ -8,8 +8,21 @@ import type {
 import { toStoredRecord } from './types.js'
 
 function blobCid(blob: BlobRefLike): string | null {
-  const cid = blob.ref?.$link
-  return typeof cid === 'string' && cid.length > 0 ? cid : null
+  const ref = blob.ref
+  const cid =
+    typeof ref === 'object' && ref !== null && '$link' in ref
+      ? (ref as { $link?: unknown }).$link
+      : undefined
+  if (typeof cid === 'string' && cid.length > 0) {
+    return cid
+  }
+
+  if (typeof ref === 'object' && ref !== null && typeof (ref as { toString?: () => string }).toString === 'function') {
+    const value = (ref as { toString: () => string }).toString()
+    return value.length > 0 ? value : null
+  }
+
+  return null
 }
 
 export class MemoryRecordStore implements RecordStore {
@@ -33,6 +46,10 @@ export class MemoryRecordStore implements RecordStore {
   async getRecord<T>(uri: string): Promise<StoredRecord<T> | null> {
     const record = this.records.get(uri)
     return (record as StoredRecord<T> | undefined) ?? null
+  }
+
+  async deleteRecord(uri: string): Promise<void> {
+    this.records.delete(uri)
   }
 
   async listRecords<T>(

@@ -55,8 +55,21 @@ function fromRow<T>(row: RecordRow): StoredRecord<T> {
 }
 
 function blobCid(blob: BlobRefLike): string | null {
-  const cid = blob.ref?.$link
-  return typeof cid === 'string' && cid.length > 0 ? cid : null
+  const ref = blob.ref
+  const cid =
+    typeof ref === 'object' && ref !== null && '$link' in ref
+      ? (ref as { $link?: unknown }).$link
+      : undefined
+  if (typeof cid === 'string' && cid.length > 0) {
+    return cid
+  }
+
+  if (typeof ref === 'object' && ref !== null && typeof (ref as { toString?: () => string }).toString === 'function') {
+    const value = (ref as { toString: () => string }).toString()
+    return value.length > 0 ? value : null
+  }
+
+  return null
 }
 
 export class SqlRecordStore implements RecordStore {
@@ -113,6 +126,14 @@ export class SqlRecordStore implements RecordStore {
     )
 
     return row ? fromRow<T>(row) : null
+  }
+
+  async deleteRecord(uri: string): Promise<void> {
+    const parsed = parseAtUri(uri)
+    await this.driver.run(
+      `DELETE FROM records WHERE repo_did = ? AND collection = ? AND rkey = ?`,
+      [parsed.repoDid, parsed.collection, parsed.rkey],
+    )
   }
 
   async listRecords<T>(

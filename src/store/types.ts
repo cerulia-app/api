@@ -1,12 +1,9 @@
 import { buildAtUri } from '../refs.js'
 
 export interface BlobRefLike {
-  ref?: {
-    $link?: string
-  }
+  ref?: unknown
   mimeType?: string
   size?: number
-  [key: string]: unknown
 }
 
 export interface RecordDraft<T> {
@@ -26,6 +23,7 @@ export interface RecordStore {
   migrate(): Promise<void>
   createRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>>
   updateRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>>
+  deleteRecord(uri: string): Promise<void>
   getRecord<T>(uri: string): Promise<StoredRecord<T> | null>
   listRecords<T>(collection: string, repoDid?: string): Promise<StoredRecord<T>[]>
   hasOwnedBlob(repoDid: string, blob: BlobRefLike): Promise<boolean>
