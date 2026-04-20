@@ -4,7 +4,7 @@ import type {
   AppCeruliaSessionGetView,
   AppCeruliaSessionList,
   AppCeruliaSessionUpdate,
-} from '@cerulia/protocol'
+} from '../protocol.js'
 import { accepted, rejected } from '../ack.js'
 import { COLLECTIONS } from '../constants.js'
 import type { AuthContext } from '../auth.js'

@@ -1,7 +1,7 @@
 import { ApiError } from './errors.js'
 
 const DID_PATTERN = /^did:[a-z0-9]+:[A-Za-z0-9._:%-]+$/
-const NSID_PATTERN = /^[a-z](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z](?:[a-z0-9-]*[a-z0-9])?)+$/
+const NSID_PATTERN = /^[a-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[a-z](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/
 const RKEY_PATTERN = /^[A-Za-z0-9._:-]+$/
 
 export interface ParsedAtUri {

@@ -4,9 +4,10 @@ import {
   AppCeruliaCorePlayerProfile,
   AppCeruliaCoreScenario,
   validateById,
-} from '@cerulia/protocol'
+} from '../protocol.js'
 import { COLLECTIONS, SELF_RKEY } from '../constants.js'
 import { ApiError } from '../errors.js'
+import { slugify } from '../ids.js'
 import { parseAtUri } from '../refs.js'
 import type { BlobRefLike, RecordDraft, StoredRecord } from '../store/types.js'
 import { isCredentialFreeUri } from '../uri-policy.js'
@@ -170,4 +171,26 @@ export async function loadBlueskyProfile(
 
   const record = await runtime.store.getRecord<BlueskyProfile>(profileRef)
   return record?.value ?? null
+}
+
+export async function createUniqueSlugRkey(
+  runtime: ServiceRuntime,
+  collection: string,
+  repoDid: string,
+  title: string,
+): Promise<string> {
+  const baseSlug = slugify(title)
+  const records = await runtime.store.listRecords<unknown>(collection, repoDid)
+  const used = new Set(records.map((record) => record.rkey))
+
+  if (!used.has(baseSlug)) {
+    return baseSlug
+  }
+
+  let suffix = 2
+  while (used.has(`${baseSlug}-${suffix}`)) {
+    suffix += 1
+  }
+
+  return `${baseSlug}-${suffix}`
 }

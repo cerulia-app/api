@@ -1,7 +1,7 @@
 import type {
   AppCeruliaCharacterGetBranchView,
   AppCeruliaCoreCharacterSheetSchema,
-} from '@cerulia/protocol'
+} from './protocol.js'
 
 type FieldDef =
   | AppCeruliaCoreCharacterSheetSchema.FieldDefRoot

@@ -9,7 +9,6 @@
     "check": "tsc --noEmit && bun test"
   },
   "dependencies": {
-    "@cerulia/protocol": "git+https://github.com/cerulia-app/protocol.git",
     "hono": "^4.10.0"
   },
   "devDependencies": {

@@ -1,6 +1,8 @@
 import { Hono } from 'hono'
 import {
   AppCeruliaActorUpdateProfile,
+  AppCeruliaCampaignCreate,
+  AppCeruliaCampaignUpdate,
   AppCeruliaCharacterCreateBranch,
   AppCeruliaCharacterCreateSheet,
   AppCeruliaCharacterRebaseSheet,
@@ -9,11 +11,17 @@ import {
   AppCeruliaCharacterRetireBranch,
   AppCeruliaCharacterUpdateBranch,
   AppCeruliaCharacterUpdateSheet,
+  AppCeruliaHouseCreate,
+  AppCeruliaHouseUpdate,
   AppCeruliaRuleCreateSheetSchema,
+  AppCeruliaRuleCreateProfile,
+  AppCeruliaRuleUpdateProfile,
+  AppCeruliaScenarioCreate,
+  AppCeruliaScenarioUpdate,
   AppCeruliaSessionCreate,
   AppCeruliaSessionUpdate,
-  decodeById,
-} from '@cerulia/protocol'
+  lexicons,
+} from './protocol.js'
 import {
   createAnonymousAuthContext,
   type AuthContext,
@@ -36,7 +44,8 @@ async function readJsonBody<T>(request: Request, lexiconId: string): Promise<T> 
     throw new ApiError('InvalidRequest', 'Request body must be valid JSON', 400)
   }
 
-  return decodeById<T>(payload, lexiconId)
+  lexicons.assertValidXrpcInput(lexiconId, payload)
+  return payload as T
 }
 
 export interface ApiAppBindings {
@@ -57,15 +66,14 @@ export function createApiApp(options: ApiAppOptions = {}) {
   const authResolver = options.authResolver ?? (() => createAnonymousAuthContext())
   const services = createServices(store)
 
+  app.onError((error) => {
+    return toErrorResponse(error)
+  })
+
   app.use('*', async (context, next) => {
     context.set('auth', authResolver(context.req.raw))
     context.set('store', store)
-
-    try {
-      await next()
-    } catch (error) {
-      return toErrorResponse(error)
-    }
+    await next()
   })
 
   app.get('/_health', (context) => {
@@ -94,6 +102,47 @@ export function createApiApp(options: ApiAppOptions = {}) {
     return context.json(
       await services.rule.listSheetSchemas(
         context.req.query('rulesetNsid'),
+        context.req.query('limit'),
+        context.req.query('cursor'),
+      ),
+    )
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.rule.createProfile`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaRuleCreateProfile.InputSchema>(
+      context.req.raw,
+      'app.cerulia.rule.createProfile',
+    )
+    return context.json(await services.rule.createProfile(callerDid, input))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.rule.updateProfile`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaRuleUpdateProfile.InputSchema>(
+      context.req.raw,
+      'app.cerulia.rule.updateProfile',
+    )
+    return context.json(await services.rule.updateProfile(callerDid, input))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.rule.getProfile`, async (context) => {
+    const callerDid = requireReaderDid(context.get('auth'))
+    const ruleProfileRef = context.req.query('ruleProfileRef')
+    if (!ruleProfileRef) {
+      throw new ApiError('InvalidRequest', 'ruleProfileRef is required', 400)
+    }
+
+    return context.json(await services.rule.getProfile(callerDid, ruleProfileRef))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.rule.listProfiles`, async (context) => {
+    const callerDid = requireReaderDid(context.get('auth'))
+    return context.json(
+      await services.rule.listProfiles(
+        callerDid,
+        context.req.query('scopeRef'),
+        context.req.query('baseRulesetNsid'),
         context.req.query('limit'),
         context.req.query('cursor'),
       ),
@@ -222,6 +271,97 @@ export function createApiApp(options: ApiAppOptions = {}) {
     }
 
     return context.json(await services.session.getView(context.get('auth'), sessionRef))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.scenario.create`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaScenarioCreate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.scenario.create',
+    )
+    return context.json(await services.scenario.create(callerDid, input))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.scenario.update`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaScenarioUpdate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.scenario.update',
+    )
+    return context.json(await services.scenario.update(callerDid, input))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.scenario.getView`, async (context) => {
+    const scenarioRef = context.req.query('scenarioRef')
+    if (!scenarioRef) {
+      throw new ApiError('InvalidRequest', 'scenarioRef is required', 400)
+    }
+
+    return context.json(await services.scenario.getView(context.get('auth'), scenarioRef))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.scenario.list`, async (context) => {
+    return context.json(
+      await services.scenario.list(
+        context.req.query('rulesetNsid'),
+        context.req.query('limit'),
+        context.req.query('cursor'),
+      ),
+    )
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.campaign.create`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaCampaignCreate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.campaign.create',
+    )
+    return context.json(await services.campaign.create(callerDid, input))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.campaign.update`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaCampaignUpdate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.campaign.update',
+    )
+    return context.json(await services.campaign.update(callerDid, input))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.campaign.getView`, async (context) => {
+    const campaignRef = context.req.query('campaignRef')
+    if (!campaignRef) {
+      throw new ApiError('InvalidRequest', 'campaignRef is required', 400)
+    }
+
+    return context.json(await services.campaign.getView(context.get('auth'), campaignRef))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.house.create`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaHouseCreate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.house.create',
+    )
+    return context.json(await services.house.create(callerDid, input))
+  })
+
+  app.post(`${XRPC_PREFIX}/app.cerulia.house.update`, async (context) => {
+    const callerDid = requireWriterDid(context.get('auth'))
+    const input = await readJsonBody<AppCeruliaHouseUpdate.InputSchema>(
+      context.req.raw,
+      'app.cerulia.house.update',
+    )
+    return context.json(await services.house.update(callerDid, input))
+  })
+
+  app.get(`${XRPC_PREFIX}/app.cerulia.house.getView`, async (context) => {
+    const houseRef = context.req.query('houseRef')
+    if (!houseRef) {
+      throw new ApiError('InvalidRequest', 'houseRef is required', 400)
+    }
+
+    return context.json(await services.house.getView(context.get('auth'), houseRef))
   })
 
   app.post(`${XRPC_PREFIX}/app.cerulia.actor.updateProfile`, async (context) => {

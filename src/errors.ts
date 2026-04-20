@@ -18,8 +18,24 @@ export class ApiError extends Error {
   }
 }
 
-export function toErrorResponse(error: unknown): Response {
+function isValidationErrorLike(error: unknown): error is Error {
   if (error instanceof ValidationError) {
+    return true
+  }
+
+  if (!(error instanceof Error)) {
+    return false
+  }
+
+  return (
+    error.name === 'ValidationError' ||
+    error.constructor?.name === 'ValidationError' ||
+    Object.getPrototypeOf(error)?.constructor?.name === 'ValidationError'
+  )
+}
+
+export function toErrorResponse(error: unknown): Response {
+  if (isValidationErrorLike(error)) {
     return Response.json(
       {
         error: 'InvalidRequest',

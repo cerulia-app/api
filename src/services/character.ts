@@ -14,7 +14,7 @@ import type {
   AppCeruliaCoreCharacterConversion,
   AppCeruliaCoreCharacterSheet,
   AppCeruliaCoreSession,
-} from '@cerulia/protocol'
+} from '../protocol.js'
 import { accepted, rebaseNeeded, rejected } from '../ack.js'
 import type { AuthContext } from '../auth.js'
 import { isOwnerReader } from '../auth.js'

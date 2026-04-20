@@ -1,4 +1,4 @@
-import type { AppCeruliaDefs } from '@cerulia/protocol'
+import type { AppCeruliaDefs } from './protocol.js'
 
 type MutationAck = AppCeruliaDefs.MutationAck
 
