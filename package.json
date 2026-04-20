@@ -9,6 +9,7 @@
     "migrate": "bun run scripts/migrate-sqlite.mjs",
     "migrate:d1:local": "bun run scripts/migrate-d1.mjs --local",
     "migrate:d1:remote": "bun run scripts/migrate-d1.mjs --remote",
+    "postinstall": "bun run scripts/link-local-protocol.mjs",
     "test": "bun test",
     "check": "tsc --noEmit && bun test"
   },
