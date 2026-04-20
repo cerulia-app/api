@@ -4,7 +4,7 @@ import type {
   AppCeruliaCoreCharacterBranch,
   AppCeruliaCoreCharacterSheet,
   AppCeruliaCorePlayerProfile,
-} from '../protocol.js'
+} from '@cerulia/protocol'
 import { accepted, rejected } from '../ack.js'
 import type { AuthContext } from '../auth.js'
 import { isOwnerReader } from '../auth.js'

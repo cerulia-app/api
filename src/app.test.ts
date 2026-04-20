@@ -400,7 +400,9 @@ describe('createApiApp', () => {
       },
       ownerHeaders,
     )
-    expect((await publicSessionResponse.json()).resultKind).toBe('accepted')
+    const publicSessionAck = await publicSessionResponse.json()
+    expect(publicSessionAck.resultKind).toBe('accepted')
+    const publicSessionRef = publicSessionAck.emittedRecordRefs[0]
 
     const draftSessionResponse = await postJson(
       app,
@@ -484,11 +486,18 @@ describe('createApiApp', () => {
     const campaignView = await campaignViewResponse.json()
     expect(campaignView.campaignSummary.title).toBe('Masks Campaign')
     expect(campaignView.sessionSummaries).toHaveLength(1)
-    expect(campaignView.sessionSummaries[0].externalArchiveUris).toEqual([
-      'https://example.com/archive/masks-intro',
-    ])
+    expect(campaignView.sessionSummaries[0].externalArchiveUris).toBeUndefined()
     expect(campaignView.ruleOverlaySummary.ruleProfiles).toHaveLength(1)
     expect(campaignView.ruleOverlaySummary.ruleProfiles[0].profileTitle).toBe('Club Overlay v2')
+
+    const publicSessionViewResponse = await getJson(
+      app,
+      `${XRPC_PREFIX}/app.cerulia.session.getView?sessionRef=${encodeURIComponent(publicSessionRef)}`,
+    )
+    const publicSessionView = await publicSessionViewResponse.json()
+    expect(publicSessionView.sessionSummary.externalArchiveUris).toEqual([
+      'https://example.com/archive/masks-intro',
+    ])
 
     const houseViewResponse = await getJson(
       app,
@@ -498,8 +507,7 @@ describe('createApiApp', () => {
     expect(houseView.houseSummary.title).toBe('Arkham Club')
     expect(houseView.campaignSummaries).toHaveLength(1)
     expect(houseView.sessionSummaries).toHaveLength(1)
-    expect(houseView.sessionSummaries[0].externalArchiveUris).toEqual([
-      'https://example.com/archive/masks-intro',
-    ])
+    expect(houseView.sessionSummaries[0].sessionRef).toBe(publicSessionRef)
+    expect(houseView.sessionSummaries[0].externalArchiveUris).toBeUndefined()
   })
 })

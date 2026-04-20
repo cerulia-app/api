@@ -29,8 +29,6 @@ export class MemoryRecordStore implements RecordStore {
   private readonly records = new Map<string, StoredRecord<unknown>>()
   private readonly ownedBlobs = new Set<string>()
 
-  async migrate(): Promise<void> {}
-
   async createRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>> {
     const record = toStoredRecord(draft)
     this.records.set(record.uri, record)

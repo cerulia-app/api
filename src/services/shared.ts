@@ -4,7 +4,7 @@ import {
   AppCeruliaCorePlayerProfile,
   AppCeruliaCoreScenario,
   validateById,
-} from '../protocol.js'
+} from '@cerulia/protocol'
 import { COLLECTIONS, SELF_RKEY } from '../constants.js'
 import { ApiError } from '../errors.js'
 import { slugify } from '../ids.js'

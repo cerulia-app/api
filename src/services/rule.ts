@@ -8,7 +8,7 @@ import type {
   AppCeruliaRuleListProfiles,
   AppCeruliaRuleListSheetSchemas,
   AppCeruliaRuleUpdateProfile,
-} from '../protocol.js'
+} from '@cerulia/protocol'
 import { accepted, rejected } from '../ack.js'
 import { COLLECTIONS } from '../constants.js'
 import { ApiError } from '../errors.js'

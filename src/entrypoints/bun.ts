@@ -6,7 +6,6 @@ const port = Number.parseInt(process.env.PORT ?? '8787', 10)
 const dbPath = process.env.CERULIA_API_DB ?? './cerulia-api.sqlite'
 
 const store = createBunSqliteStore(dbPath)
-await store.migrate()
 
 const app = createApiApp({
   store,

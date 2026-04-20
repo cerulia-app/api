@@ -20,7 +20,6 @@ export interface StoredRecord<T> extends RecordDraft<T> {
 }
 
 export interface RecordStore {
-  migrate(): Promise<void>
   createRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>>
   updateRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>>
   deleteRecord(uri: string): Promise<void>

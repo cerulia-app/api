@@ -21,7 +21,7 @@ import {
   AppCeruliaSessionCreate,
   AppCeruliaSessionUpdate,
   lexicons,
-} from './protocol.js'
+} from '@cerulia/protocol'
 import {
   createAnonymousAuthContext,
   type AuthContext,

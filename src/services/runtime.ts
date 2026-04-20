@@ -1,6 +1,5 @@
 import { createOpaqueId, createTidLikeId } from '../ids.js'
 import type { RecordStore } from '../store/types.js'
-import { nowIso } from '../time.js'
 
 export interface ServiceRuntime {
   store: RecordStore
@@ -12,7 +11,7 @@ export interface ServiceRuntime {
 export function createServiceRuntime(store: RecordStore): ServiceRuntime {
   return {
     store,
-    now: nowIso,
+    now: () => new Date().toISOString(),
     nextTid: () => createTidLikeId(),
     nextOpaque: () => createOpaqueId(),
   }

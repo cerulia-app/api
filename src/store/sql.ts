@@ -17,31 +17,10 @@ interface RecordRow {
 }
 
 export interface SqlDriver {
-  exec(sql: string): Promise<void>
   get<T>(sql: string, params?: unknown[]): Promise<T | null>
   all<T>(sql: string, params?: unknown[]): Promise<T[]>
   run(sql: string, params?: unknown[]): Promise<void>
 }
-
-const MIGRATIONS = [
-  `CREATE TABLE IF NOT EXISTS records (
-    repo_did TEXT NOT NULL,
-    collection TEXT NOT NULL,
-    rkey TEXT NOT NULL,
-    value_json TEXT NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    PRIMARY KEY (repo_did, collection, rkey)
-  )`,
-  `CREATE INDEX IF NOT EXISTS records_by_collection
-    ON records (collection, repo_did, updated_at)`,
-  `CREATE TABLE IF NOT EXISTS owned_blobs (
-    repo_did TEXT NOT NULL,
-    blob_cid TEXT NOT NULL,
-    blob_json TEXT NOT NULL,
-    PRIMARY KEY (repo_did, blob_cid)
-  )`,
-] as const
 
 function fromRow<T>(row: RecordRow): StoredRecord<T> {
   return toStoredRecord({
@@ -74,12 +53,6 @@ function blobCid(blob: BlobRefLike): string | null {
 
 export class SqlRecordStore implements RecordStore {
   constructor(private readonly driver: SqlDriver) {}
-
-  async migrate(): Promise<void> {
-    for (const migration of MIGRATIONS) {
-      await this.driver.exec(migration)
-    }
-  }
 
   async createRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>> {
     await this.driver.run(

@@ -11,7 +11,6 @@ let appPromise: Promise<ReturnType<typeof createApiApp>> | undefined
 async function getApp(env: WorkerEnv) {
   appPromise ??= (async () => {
     const store = createD1Store(env.DB)
-    await store.migrate()
     return createApiApp({
       store,
       authResolver: resolveHeaderAuthContext,

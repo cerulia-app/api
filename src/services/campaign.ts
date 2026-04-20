@@ -5,7 +5,7 @@ import type {
   AppCeruliaCoreCampaign,
   AppCeruliaCoreRuleProfile,
   AppCeruliaCoreSession,
-} from '../protocol.js'
+} from '@cerulia/protocol'
 import { accepted, rejected } from '../ack.js'
 import type { AuthContext } from '../auth.js'
 import { isOwnerReader } from '../auth.js'
@@ -242,7 +242,6 @@ export function createCampaignService(runtime: ServiceRuntime) {
               hoLabel: session.value.hoLabel,
               hoSummary: session.value.hoSummary,
               outcomeSummary: session.value.outcomeSummary,
-              externalArchiveUris: session.value.externalArchiveUris,
             })),
         ),
         ruleOverlaySummary: {

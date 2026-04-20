@@ -13,20 +13,10 @@ export interface D1StatementLike {
 
 export interface D1DatabaseLike {
   prepare(sql: string): D1StatementLike
-  exec?(sql: string): Promise<unknown>
 }
 
 class D1SqlDriver implements SqlDriver {
   constructor(private readonly db: D1DatabaseLike) {}
-
-  async exec(sql: string): Promise<void> {
-    if (this.db.exec) {
-      await this.db.exec(sql)
-      return
-    }
-
-    await this.db.prepare(sql).run()
-  }
 
   async get<T>(sql: string, params: unknown[] = []): Promise<T | null> {
     return this.db.prepare(sql).bind(...params).first<T>()

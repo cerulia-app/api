@@ -6,7 +6,7 @@ import type {
   AppCeruliaHouseCreate,
   AppCeruliaHouseGetView,
   AppCeruliaHouseUpdate,
-} from '../protocol.js'
+} from '@cerulia/protocol'
 import { accepted, rejected } from '../ack.js'
 import type { AuthContext } from '../auth.js'
 import { isOwnerReader } from '../auth.js'
@@ -234,7 +234,6 @@ export function createHouseService(runtime: ServiceRuntime) {
               hoLabel: session.value.hoLabel,
               hoSummary: session.value.hoSummary,
               outcomeSummary: session.value.outcomeSummary,
-              externalArchiveUris: session.value.externalArchiveUris,
             })),
         ),
       }

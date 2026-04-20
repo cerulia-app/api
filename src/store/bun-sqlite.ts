@@ -12,10 +12,6 @@ class BunSqlDriver implements SqlDriver {
     this.db = new Database(path, { create: true })
   }
 
-  async exec(sql: string): Promise<void> {
-    this.db.exec(sql)
-  }
-
   async get<T>(sql: string, params: unknown[] = []): Promise<T | null> {
     const row = this.db.query(sql).get(...asBindings(params))
     return (row as T | undefined) ?? null
