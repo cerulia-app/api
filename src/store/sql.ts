@@ -1,0 +1,167 @@
+import { parseAtUri } from '../refs.js'
+import type {
+  BlobRefLike,
+  RecordDraft,
+  RecordStore,
+  StoredRecord,
+} from './types.js'
+import { toStoredRecord } from './types.js'
+
+interface RecordRow {
+  repo_did: string
+  collection: string
+  rkey: string
+  value_json: string
+  created_at: string
+  updated_at: string
+}
+
+export interface SqlDriver {
+  exec(sql: string): Promise<void>
+  get<T>(sql: string, params?: unknown[]): Promise<T | null>
+  all<T>(sql: string, params?: unknown[]): Promise<T[]>
+  run(sql: string, params?: unknown[]): Promise<void>
+}
+
+const MIGRATIONS = [
+  `CREATE TABLE IF NOT EXISTS records (
+    repo_did TEXT NOT NULL,
+    collection TEXT NOT NULL,
+    rkey TEXT NOT NULL,
+    value_json TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (repo_did, collection, rkey)
+  )`,
+  `CREATE INDEX IF NOT EXISTS records_by_collection
+    ON records (collection, repo_did, updated_at)`,
+  `CREATE TABLE IF NOT EXISTS owned_blobs (
+    repo_did TEXT NOT NULL,
+    blob_cid TEXT NOT NULL,
+    blob_json TEXT NOT NULL,
+    PRIMARY KEY (repo_did, blob_cid)
+  )`,
+] as const
+
+function fromRow<T>(row: RecordRow): StoredRecord<T> {
+  return toStoredRecord({
+    repoDid: row.repo_did,
+    collection: row.collection,
+    rkey: row.rkey,
+    value: JSON.parse(row.value_json) as T,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  })
+}
+
+function blobCid(blob: BlobRefLike): string | null {
+  const cid = blob.ref?.$link
+  return typeof cid === 'string' && cid.length > 0 ? cid : null
+}
+
+export class SqlRecordStore implements RecordStore {
+  constructor(private readonly driver: SqlDriver) {}
+
+  async migrate(): Promise<void> {
+    for (const migration of MIGRATIONS) {
+      await this.driver.exec(migration)
+    }
+  }
+
+  async createRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>> {
+    await this.driver.run(
+      `INSERT INTO records (repo_did, collection, rkey, value_json, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        draft.repoDid,
+        draft.collection,
+        draft.rkey,
+        JSON.stringify(draft.value),
+        draft.createdAt,
+        draft.updatedAt,
+      ],
+    )
+
+    return toStoredRecord(draft)
+  }
+
+  async updateRecord<T>(draft: RecordDraft<T>): Promise<StoredRecord<T>> {
+    await this.driver.run(
+      `UPDATE records
+       SET value_json = ?, created_at = ?, updated_at = ?
+       WHERE repo_did = ? AND collection = ? AND rkey = ?`,
+      [
+        JSON.stringify(draft.value),
+        draft.createdAt,
+        draft.updatedAt,
+        draft.repoDid,
+        draft.collection,
+        draft.rkey,
+      ],
+    )
+
+    return toStoredRecord(draft)
+  }
+
+  async getRecord<T>(uri: string): Promise<StoredRecord<T> | null> {
+    const parsed = parseAtUri(uri)
+    const row = await this.driver.get<RecordRow>(
+      `SELECT repo_did, collection, rkey, value_json, created_at, updated_at
+       FROM records
+       WHERE repo_did = ? AND collection = ? AND rkey = ?`,
+      [parsed.repoDid, parsed.collection, parsed.rkey],
+    )
+
+    return row ? fromRow<T>(row) : null
+  }
+
+  async listRecords<T>(
+    collection: string,
+    repoDid?: string,
+  ): Promise<StoredRecord<T>[]> {
+    const rows = repoDid
+      ? await this.driver.all<RecordRow>(
+          `SELECT repo_did, collection, rkey, value_json, created_at, updated_at
+           FROM records
+           WHERE collection = ? AND repo_did = ?
+           ORDER BY updated_at DESC, created_at DESC, rkey ASC`,
+          [collection, repoDid],
+        )
+      : await this.driver.all<RecordRow>(
+          `SELECT repo_did, collection, rkey, value_json, created_at, updated_at
+           FROM records
+           WHERE collection = ?
+           ORDER BY updated_at DESC, created_at DESC, repo_did ASC, rkey ASC`,
+          [collection],
+        )
+
+    return rows.map((row) => fromRow<T>(row))
+  }
+
+  async hasOwnedBlob(repoDid: string, blob: BlobRefLike): Promise<boolean> {
+    const cid = blobCid(blob)
+    if (!cid) {
+      return false
+    }
+
+    const row = await this.driver.get<{ blob_cid: string }>(
+      `SELECT blob_cid FROM owned_blobs WHERE repo_did = ? AND blob_cid = ?`,
+      [repoDid, cid],
+    )
+
+    return row !== null
+  }
+
+  async registerOwnedBlob(repoDid: string, blob: BlobRefLike): Promise<void> {
+    const cid = blobCid(blob)
+    if (!cid) {
+      return
+    }
+
+    await this.driver.run(
+      `INSERT OR REPLACE INTO owned_blobs (repo_did, blob_cid, blob_json)
+       VALUES (?, ?, ?)`,
+      [repoDid, cid, JSON.stringify(blob)],
+    )
+  }
+}
